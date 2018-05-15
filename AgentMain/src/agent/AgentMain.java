@@ -1,19 +1,26 @@
 package agent;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AgentMain {
   
-  private static int blueAgentsNum;
+  public static int blueAgentsNum;
   private static int redAgentsNum;
   private static int timeOutLowerBound;
   private static int timeOutUpperBound;
   private static ArrayList<Integer> usedPorts;
+  private static ArrayList<ServerThread> servers = new ArrayList<>();
+  private static ArrayList<ClientThread> clients = new ArrayList<>();
 
   
   public static void main(String[] args) {
@@ -33,22 +40,15 @@ public class AgentMain {
     }
     
     for (int i = 0; i < blueAgentsNum + redAgentsNum; i++) {
-      Thread t = new Thread(() -> {
-        System.out.println("Ügynök kész ");
-        int port = getNewPort();
-        System.out.println(port + " az én portom");
-        
-        lookForConnection(port);
-          
-      });
-      t.start();
+      int actualPort = getNewPort();
+      ServerThread t = new ServerThread(String.valueOf(i),actualPort,timeOutUpperBound);
+      ClientThread t2 = new ClientThread(t, String.valueOf(i), actualPort, timeOutLowerBound, timeOutUpperBound);
+      servers.add(t);
+      clients.add(t2);
     }
-    
-  }
-  
-  private static void goAgents(int team, int numOfAgents){
-    for (int i = 0; i < numOfAgents; i++) {
-      Thread t = new Thread();
+    for (int i = 0; i < servers.size(); i++) {
+      servers.get(i).start();
+      clients.get(i).start();
     }
   }
   
@@ -57,27 +57,22 @@ public class AgentMain {
     System.exit(1);
   }
   
-  private static int getNewPort(){
+  public static void releasePort(int port){
+    usedPorts.remove(new Integer(port));
+  }
+  
+  public static int getNewPort(){
     Random rnd = new Random();
-    int result = rnd.nextInt(100)+20000;
+    int result = rnd.nextInt(10)+20000;
     while (usedPorts.contains(result)) {
       System.out.println(result + " port foglalt");
-      result = rnd.nextInt(100)+20000;
+      result = rnd.nextInt(10)+20000;
     }
     usedPorts.add(result);
     return result;
   }
+  
 
-  private static void lookForConnection(int port){
-    try(ServerSocket ss = new ServerSocket(port);
-        Socket s = ss.accept();) {
-        ss.setSoTimeout(timeOutUpperBound);
-    
-    } catch (SocketException e){
-        //throw new NewException();
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-  }
+
   
 }

@@ -3,8 +3,9 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Kaszon/BrainingHub/NetBeansProjects/AgentMain/src/agent/AgentMain.java</file>
-            <file>file:/C:/Kaszon/BrainingHub/NetBeansProjects/AgentMain/src/agent/NewException.java</file>
+            <file>file:/D:/Kaszon/Suli/Osztott/AgentMain/src/agent/AgentMain.java</file>
+            <file>file:/D:/Kaszon/Suli/Osztott/AgentMain/src/agent/ServerThread.java</file>
+            <file>file:/D:/Kaszon/Suli/Osztott/AgentMain/src/agent/ClientThread.java</file>
         </group>
     </open-files>
 </project-private>
