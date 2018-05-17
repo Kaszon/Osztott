@@ -15,12 +15,13 @@ import java.util.logging.Logger;
 public class AgentMain {
   
   public static int blueAgentsNum;
-  private static int redAgentsNum;
+  public static int redAgentsNum;
   private static int timeOutLowerBound;
   private static int timeOutUpperBound;
   private static ArrayList<Integer> usedPorts;
   private static ArrayList<ServerThread> servers = new ArrayList<>();
   private static ArrayList<ClientThread> clients = new ArrayList<>();
+  private static boolean end = false;
 
   
   public static void main(String[] args) {
@@ -41,14 +42,46 @@ public class AgentMain {
     
     for (int i = 0; i < blueAgentsNum + redAgentsNum; i++) {
       int actualPort = getNewPort();
-      ServerThread t = new ServerThread(String.valueOf(i),actualPort,timeOutUpperBound);
-      ClientThread t2 = new ClientThread(t, String.valueOf(i), actualPort, timeOutLowerBound, timeOutUpperBound);
+      ServerThread t;
+      ClientThread t2 = null;
+      t = new ServerThread(t2 ,String.valueOf(i),actualPort,timeOutUpperBound);
+      t2 = new ClientThread(t, String.valueOf(i), actualPort, timeOutLowerBound, timeOutUpperBound);
+      t.setClient(t2);
       servers.add(t);
       clients.add(t2);
     }
     for (int i = 0; i < servers.size(); i++) {
       servers.get(i).start();
       clients.get(i).start();
+    }
+    
+    while (!end) {
+      int sum = 0;
+      for (int i = 0; i < blueAgentsNum; i++) {
+        sum = sum + (servers.get(i).isAlive() ? 1 : 0);
+      }
+      if (sum == 0) {
+        end = true;
+        System.out.println("Piros Nyert");
+        gameOver();
+        break;
+      }
+      sum = 0;
+      for (int i = blueAgentsNum; i < blueAgentsNum+redAgentsNum; i++) {
+        sum = sum + (servers.get(i).isAlive() ? 1 : 0);
+      }
+      if (sum == 0) {
+        end = true;
+        System.out.println("Kék Nyert");
+        gameOver();
+      }
+    }
+  }
+  
+  public static void gameOver(){
+    for (int i = 0; i < clients.size(); i++) {
+      clients.get(i).arrasted();
+      servers.get(i).arrasted();
     }
   }
   

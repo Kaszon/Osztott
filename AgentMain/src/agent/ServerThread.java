@@ -22,12 +22,22 @@ public class ServerThread extends Thread implements Runnable{
     private PrintWriter pw = null;
     private Scanner sc = null;
     private static int agentNumber = 1;
+    private static boolean changed = false;
+    private int agentId;
     private int agency;
     private HashSet<String> secretMessages = new HashSet<>();
+    private HashSet<String> toldSecretMessages = new HashSet<>();
     private ArrayList<String> alias = new ArrayList<>();
     private Random rnd = new Random();
+    private boolean over = false;
+    private ClientThread client;
 
-    public ServerThread(String name, int port, int t2) {
+  public void setClient(ClientThread client) {
+    this.client = client;
+  }
+
+    public ServerThread(ClientThread client,String name, int port, int t2) {
+        this.client = client;
         this.name = name;
         this.port = port;
         this.t2 = t2;
@@ -36,9 +46,14 @@ public class ServerThread extends Thread implements Runnable{
         }
         else{
           agency = 2;
-          agentNumber = 1;
+          if (!changed) {
+            agentNumber = 1;
+            changed = true;
+          }
         }
         readFromFile(agency, agentNumber);
+        agentId = agentNumber;
+        System.out.println(name + " " + agentId);
         agentNumber++;
 //        for (String a : alias) {
 //          System.out.println(name + " = " + a);
@@ -47,7 +62,7 @@ public class ServerThread extends Thread implements Runnable{
 
     @Override
     public void run() {
-      while (true) {
+      while (!over) {
         try (ServerSocket ss = new ServerSocket(port);)
         {
           System.out.println(name + " = Port : " + port);
@@ -61,19 +76,47 @@ public class ServerThread extends Thread implements Runnable{
           pw.println(alias.get(rnd.nextInt(alias.size())));
           pw.flush();
           
-          if (agency == Integer.parseInt(sc.nextLine())){
+          int clientAgencyGuess = Integer.parseInt(sc.nextLine());
+          String tmp;
+          int guess;
+          if (agency == clientAgencyGuess){
             pw.println("OK");
             pw.flush();
             
-            if (sc.hasNextLine() && sc.nextLine().equals("OK")) {
+            if (sc.hasNextLine()) {
+              tmp = sc.nextLine();
+              
+              if (tmp.equals("OK")) {
               System.out.println("BARÁT");
               pw.println(getRandomSecretMsg());
               pw.flush();
               secretMessages.add(sc.nextLine());
+              }
+              
+              if (tmp.equals("???")) {
+                System.out.println("ELLENFÉL");
+                guess = Integer.parseInt(sc.nextLine());
+                if (guess == agentId) {
+                  tmp = getRandomSecretMsg();
+                  while (toldSecretMessages.contains(tmp)) {
+                    tmp = getRandomSecretMsg();
+                  }
+                  toldSecretMessages.add(tmp);
+                  if (secretMessages.equals(toldSecretMessages)) {
+                    System.err.println("LE VAGYOK TARTÓZTATVA!!!!!!!!");
+                    over=true;
+                    client.arrasted();
+                  }
+                  pw.println(getRandomSecretMsg());
+                  pw.flush();
+                  
+                }
+                else {
+                  s.close();
+                }
+              }
             }
-            else if (sc.hasNextLine() && sc.nextLine().equals("???")) {
-              System.out.println("ELLENFÉL");
-            }
+            
           }
           else{
             s.close();
@@ -131,4 +174,13 @@ public class ServerThread extends Thread implements Runnable{
     }
     return "";
   }
+  
+  public void arrasted(){
+    over = true;
+  }
+
+  public boolean isOver() {
+    return over;
+  }
+  
 }

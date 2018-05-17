@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -23,11 +24,16 @@ public class ClientThread extends Thread implements Runnable{
   private HashSet<String> redAlias = new HashSet<>();
   private Random rnd = new Random();
   private static int agentNumber = 1;
+  private static boolean changed = false;
   private int agency;
   private HashSet<String> secretMessages = new HashSet<>();
+  private HashSet<String> enemySecretMessages = new HashSet<>();
   private ArrayList<String> alias = new ArrayList<>();
   private ServerThread server;
+  private HashMap<String, Integer> aliasIdValid = new HashMap<>();
+  private HashMap<String, ArrayList<Integer>> aliasIdAvaible = new HashMap<>();
   private static ArrayList<Integer> usedPorts = new ArrayList<>();
+  private boolean over = false;
 
   public ClientThread(ServerThread server, String name, int port, int t1, int t2) {
     this.server = server;
@@ -40,7 +46,10 @@ public class ClientThread extends Thread implements Runnable{
     }
     else{
       agency = 2;
-      agentNumber = 1;
+      if (!changed) {
+        agentNumber = 1;
+        changed = true;
+      }    
     }
     readFromFile(agency, agentNumber);
     agentNumber++;
@@ -63,7 +72,7 @@ public class ClientThread extends Thread implements Runnable{
 
   @Override
   public void run() {
-    while (true) {
+    while (!over) {
         String response = "";
         int choice;
         int serverPort = getServerPort();
@@ -88,11 +97,11 @@ public class ClientThread extends Thread implements Runnable{
           
           choice = agencyChoice(response);
           System.out.println(name + " = Alias : " + response);
-          System.out.println(name + " = Tipp : " + choice);
+          System.out.println(name + " én = " + agency + " = Tipp : " + choice);
           
           pw.println(choice);
           pw.flush();
-          
+          ArrayList<Integer> tmpArrayList = new ArrayList<>();
           if (sc.hasNextLine() && sc.nextLine().equals("OK")) {
             switch (choice) {
               case 1:
@@ -117,6 +126,17 @@ public class ClientThread extends Thread implements Runnable{
               default:
             }            
           }
+          if (serverAgency == 1) {
+            for (int i = 0; i < AgentMain.blueAgentsNum; i++) {
+              tmpArrayList.add(i+1);
+            }
+          }
+          else{
+            for (int i = 0; i < AgentMain.redAgentsNum; i++) {
+              tmpArrayList.add(i+1);
+            }
+          }
+          aliasIdAvaible.put(response, tmpArrayList);
           System.out.println(" - Blue - ");
           for (String bA : blueAlias) {
             System.out.println(bA);
@@ -135,16 +155,44 @@ public class ClientThread extends Thread implements Runnable{
             }
           }
           else{
+            int n;
+            System.out.println("???");
             pw.println("???");
+            if (aliasIdValid.containsKey(response)) {
+              n = aliasIdValid.get(response);
+            }
+            else if(aliasIdAvaible.containsKey(response)){
+              n = aliasIdAvaible.get(response).get(rnd.nextInt(aliasIdAvaible.get(response).size()));
+              aliasIdAvaible.get(response).remove(new Integer(n));
+            }
+            else{
+              if (agency == 1) {
+                n = rnd.nextInt(AgentMain.redAgentsNum)+1;
+              }
+              else{
+                n = rnd.nextInt(AgentMain.blueAgentsNum)+1;
+              }
+            }
+            pw.println(n);
             pw.flush();
+            
+            if (sc.hasNextLine()) {
+              String secret;
+              secret = sc.nextLine();
+              enemySecretMessages.add(secret);
+              System.out.println(name + " = MEGTUDTAM EGY TITKOT! A TITOK = " + secret);
+            }
           }
-          
-          
-          System.out.println(" - Ismert üzenetek - ");
-          for (String sM : secretMessages) {
+
+
+          for (String sM : enemySecretMessages) {
+            System.out.println(" - Ismert ellenséges titkok - ");
             System.out.println(sM);
           }
-          
+          if (enemySecretMessages.size() == 2) {
+            System.err.println("VÉGE! - Nyert a " + (agency==1 ? "Kék" : "Piros") + "csapat");
+            AgentMain.gameOver();
+          }
 //          System.out.println(name + " = T2 : " + t2);
         } catch (IOException e){
             
@@ -192,6 +240,10 @@ public class ClientThread extends Thread implements Runnable{
       i++;
     }
     return "";
+  }
+  
+  public void arrasted(){
+    over = true;
   }
   
 
